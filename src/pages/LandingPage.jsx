@@ -3,6 +3,7 @@ import Footer from "../components/Footer";
 import HeroSection from "../components/HeroSection";
 import Navbar from "../components/Navbar";
 import PreviewSection from "../components/PreviewSection";
+import { useComplaintHistory } from "../hooks/useComplaintHistory.jsx";
 import { useAuth } from "../hooks/useAuth.jsx";
 import { useToast } from "../hooks/useToast.jsx";
 
@@ -10,6 +11,7 @@ export default function LandingPage() {
   const navigate = useNavigate();
   const { signOut } = useAuth();
   const { showToast } = useToast();
+  const { latestComplaint, isLoading } = useComplaintHistory();
 
   const scrollToPreview = () => {
     document.getElementById("preview")?.scrollIntoView({
@@ -24,6 +26,14 @@ export default function LandingPage() {
     navigate("/", { replace: true });
   };
 
+  const openSubmitComplaint = () => {
+    navigate("/submit");
+  };
+
+  const openComplaintHistory = () => {
+    navigate("/history");
+  };
+
   return (
     <div className="page-shell">
       <div className="aurora aurora-one"></div>
@@ -32,8 +42,12 @@ export default function LandingPage() {
 
       <main className="app-frame">
         <section className="landing-screen">
-          <Navbar onLogout={handleLogout} onOpenPreview={scrollToPreview} />
-          <HeroSection onViewSnapshot={scrollToPreview} />
+          <Navbar
+            onLogout={handleLogout}
+            onOpenPreview={scrollToPreview}
+            onOpenHistory={openComplaintHistory}
+          />
+          <HeroSection onViewSnapshot={scrollToPreview} onSubmitComplaint={openSubmitComplaint} />
 
           <section className="info-section" id="about">
             <article className="glass-card section-card">
@@ -57,7 +71,7 @@ export default function LandingPage() {
             </article>
           </section>
 
-          <PreviewSection />
+          <PreviewSection complaint={latestComplaint} isLoading={isLoading} />
           <Footer />
         </section>
       </main>

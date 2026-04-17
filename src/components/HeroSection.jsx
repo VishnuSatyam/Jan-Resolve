@@ -1,4 +1,4 @@
-export default function HeroSection({ onViewSnapshot }) {
+export default function HeroSection({ onViewSnapshot, onSubmitComplaint }) {
   return (
     <section className="hero-section glass-card" id="home">
       <div className="hero-copy">
@@ -13,6 +13,9 @@ export default function HeroSection({ onViewSnapshot }) {
           <a className="primary-button" href="#about">
             Explore Platform
           </a>
+          <button className="primary-button secondary-action" type="button" onClick={onSubmitComplaint}>
+            Submit Complaint
+          </button>
           <button className="ghost-button" type="button" onClick={onViewSnapshot}>
             View Complaint Snapshot
           </button>

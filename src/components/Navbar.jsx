@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 
-export default function Navbar({ onLogout, onOpenPreview }) {
+export default function Navbar({ onLogout, onOpenPreview, onOpenHistory }) {
   return (
     <header className="site-header glass-card">
       <div className="logo-group">
@@ -28,8 +28,11 @@ export default function Navbar({ onLogout, onOpenPreview }) {
       </nav>
 
       <div className="header-actions">
+        <button className="ghost-button" type="button" onClick={onOpenHistory}>
+          Complaint History
+        </button>
         <button className="ghost-button" type="button" onClick={onOpenPreview}>
-          Open Demo View
+          View Complaint Snapshot
         </button>
         <button className="primary-button small" type="button" onClick={onLogout}>
           Logout

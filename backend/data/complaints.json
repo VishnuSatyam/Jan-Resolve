@@ -1,0 +1,107 @@
+[
+  {
+    "_id": "1776406303929-7447",
+    "complaintId": "GOV-522984",
+    "title": "Road Safety issue at new york",
+    "description": "there is so much snow on road do something mamdani",
+    "category": "Road Safety",
+    "priority": "Medium",
+    "status": "Submitted",
+    "location": {
+      "address": "new york"
+    },
+    "publicLocation": "new york",
+    "contactName": "Vishnnu",
+    "contactPhone": "9140488901",
+    "contactEmail": "pandeyvishnusatyam@gmail.com",
+    "assignedDepartment": "Roads & Infrastructure",
+    "attachments": [
+      {
+        "filename": "1776406303873-screenshot-2026-04-14-173804.png",
+        "url": "/uploads/complaints/1776406303873-screenshot-2026-04-14-173804.png",
+        "mimetype": "image/png",
+        "size": 325353,
+        "uploadedAt": "2026-04-17T06:11:43.928Z"
+      }
+    ],
+    "statusHistory": [
+      {
+        "status": "Submitted",
+        "comment": "Complaint submitted successfully.",
+        "updatedAt": "2026-04-17T06:11:43.928Z"
+      }
+    ],
+    "createdAt": "2026-04-17T06:11:43.928Z",
+    "updatedAt": "2026-04-17T06:11:43.928Z"
+  },
+  {
+    "_id": "1776366023172-5772",
+    "complaintId": "GOV-644395",
+    "title": "Road Safety issue at new york",
+    "description": "road safety is hell is ny city do something mamdani",
+    "category": "Road Safety",
+    "priority": "Medium",
+    "status": "Submitted",
+    "location": {
+      "address": "new york"
+    },
+    "publicLocation": "new york",
+    "contactName": "Vishnnu",
+    "contactPhone": "9140488901",
+    "contactEmail": "pandeyvishnusatyam@gmail.com",
+    "assignedDepartment": "Roads & Infrastructure",
+    "attachments": [
+      {
+        "filename": "1776366023092-screenshot-2026-04-16-144317.png",
+        "url": "/uploads/complaints/1776366023092-screenshot-2026-04-16-144317.png",
+        "mimetype": "image/png",
+        "size": 415239,
+        "uploadedAt": "2026-04-16T19:00:23.171Z"
+      }
+    ],
+    "statusHistory": [
+      {
+        "status": "Submitted",
+        "comment": "Complaint submitted successfully.",
+        "updatedAt": "2026-04-16T19:00:23.171Z"
+      }
+    ],
+    "createdAt": "2026-04-16T19:00:23.171Z",
+    "updatedAt": "2026-04-16T19:00:23.171Z"
+  },
+  {
+    "_id": "1776362921785-3536",
+    "complaintId": "GOV-862769",
+    "title": "Healthcare issue at New Delhi",
+    "description": "person is suffering from fever do something",
+    "category": "Healthcare",
+    "priority": "Medium",
+    "status": "Submitted",
+    "location": {
+      "address": "New Delhi"
+    },
+    "publicLocation": "New Delhi",
+    "contactName": "Vishnnu",
+    "contactPhone": "9140488901",
+    "contactEmail": "pandeyvishnusatyam@gmail.com",
+    "assignedDepartment": "Public Health",
+    "attachments": [
+      {
+        "filename": "1776362921694-screenshot-2026-04-14-173804.png",
+        "url": "/uploads/complaints/1776362921694-screenshot-2026-04-14-173804.png",
+        "mimetype": "image/png",
+        "size": 325353,
+        "uploadedAt": "2026-04-16T18:08:41.784Z"
+      }
+    ],
+    "statusHistory": [
+      {
+        "status": "Submitted",
+        "comment": "Complaint submitted successfully.",
+        "updatedAt": "2026-04-16T18:08:41.784Z"
+      }
+    ],
+    "createdAt": "2026-04-16T18:08:41.784Z",
+    "updatedAt": "2026-04-16T18:08:41.784Z"
+  }
+]

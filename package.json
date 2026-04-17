@@ -4,7 +4,11 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "concurrently \"npm:dev:frontend\" \"npm:dev:backend\"",
+    "dev:frontend": "vite",
+    "kill:5000": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$connections = Get-NetTCPConnection -LocalPort 5000 -State Listen -ErrorAction SilentlyContinue; if ($connections) { $connections | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue } }; exit 0\"",
+    "dev:backend": "npm run kill:5000 && npm run dev --prefix backend",
+    "dev:all": "concurrently \"npm:dev:frontend\" \"npm:dev:backend\"",
     "build": "vite build",
     "preview": "vite preview"
   },
@@ -15,6 +19,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.2.1",
     "vite": "^5.4.10"
   }
 }

@@ -2,7 +2,9 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "./hooks/useAuth.jsx";
 import { ToastProvider } from "./hooks/useToast.jsx";
 import AuthPage from "./pages/AuthPage";
+import ComplaintHistoryPage from "./pages/ComplaintHistoryPage";
 import LandingPage from "./pages/LandingPage";
+import SubmitComplaintPage from "./pages/SubmitComplaintPage";
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated, isReady } = useAuth();
@@ -42,6 +44,22 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <LandingPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/submit"
+            element={
+              <ProtectedRoute>
+                <SubmitComplaintPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/history"
+            element={
+              <ProtectedRoute>
+                <ComplaintHistoryPage />
               </ProtectedRoute>
             }
           />
