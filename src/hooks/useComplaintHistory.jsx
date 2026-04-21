@@ -3,7 +3,7 @@ import { useAuth } from "./useAuth.jsx";
 import { apiBaseUrl } from "../utils/complaints.js";
 
 export function useComplaintHistory() {
-  const { currentUser, isReady } = useAuth();
+  const { accessToken, currentUser, isReady } = useAuth();
   const [complaints, setComplaints] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -38,6 +38,7 @@ export function useComplaintHistory() {
         const response = await fetch(
           `${apiBaseUrl}/api/complaints/history?${query.toString()}`,
           {
+            headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
             signal: abortController.signal
           }
         );
@@ -67,7 +68,7 @@ export function useComplaintHistory() {
     return () => {
       abortController.abort();
     };
-  }, [currentUser?.email, currentUser?.name, isReady]);
+  }, [accessToken, currentUser?.email, currentUser?.name, isReady]);
 
   return {
     complaints,

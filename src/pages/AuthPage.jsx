@@ -20,7 +20,7 @@ export default function AuthPage() {
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState("signin");
   const [authMessage, setAuthMessage] = useState(
-    "Demo mode: sign in with your saved account to access the landing page."
+    "Sign in with your Jan Resolve account to access the platform."
   );
   const [signInForm, setSignInForm] = useState(initialSignInForm);
   const [registerForm, setRegisterForm] = useState(initialRegisterForm);
@@ -30,16 +30,16 @@ export default function AuthPage() {
     setActiveTab(targetTab);
     setAuthMessage(
       targetTab === "signin"
-        ? "Demo mode: sign in with your saved account to access the landing page."
-        : "Demo mode: your registration is stored locally in this browser only."
+        ? "Sign in with your Jan Resolve account to access the platform."
+        : "Create an account backed by the Jan Resolve API."
     );
   };
 
-  const handleSignInSubmit = (event) => {
+  const handleSignInSubmit = async (event) => {
     event.preventDefault();
     setIsSubmitting(true);
 
-    const result = signIn({
+    const result = await signIn({
       email: signInForm.email.trim(),
       password: signInForm.password
     });
@@ -48,11 +48,6 @@ export default function AuthPage() {
       setAuthMessage(result.error);
       showToast({ message: result.error, type: "error" });
       setIsSubmitting(false);
-
-      if (result.error.includes("Please create one first")) {
-        handleTabChange("register");
-      }
-
       return;
     }
 
@@ -63,19 +58,26 @@ export default function AuthPage() {
     setIsSubmitting(false);
   };
 
-  const handleRegisterSubmit = (event) => {
+  const handleRegisterSubmit = async (event) => {
     event.preventDefault();
     setIsSubmitting(true);
 
-    const nextUser = register({
+    const result = await register({
       name: registerForm.name.trim(),
       email: registerForm.email.trim(),
       password: registerForm.password
     });
 
+    if (!result.ok) {
+      setAuthMessage(result.error);
+      showToast({ message: result.error, type: "error" });
+      setIsSubmitting(false);
+      return;
+    }
+
     setAuthMessage("Registration successful. Entering the landing page now.");
     setRegisterForm(initialRegisterForm);
-    showToast({ message: `Account created for ${nextUser.name}.`, type: "success" });
+    showToast({ message: `Account created for ${result.user.name}.`, type: "success" });
     navigate("/home", { replace: true });
     setIsSubmitting(false);
   };

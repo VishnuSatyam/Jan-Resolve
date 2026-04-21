@@ -1,12 +1,35 @@
 const User = require('../models/User');
+const mongoose = require('mongoose');
 const { sendTokenResponse, verifyRefreshToken, generateAccessToken } = require('../utils/jwt');
 const { AppError, asyncHandler } = require('../utils/errorHandler');
+const {
+  changeLocalUserPassword,
+  createLocalUser,
+  findLocalUserById,
+  toPublicLocalUser,
+  touchLocalUserLogin,
+  updateLocalUser,
+  verifyLocalUserCredentials,
+} = require('../utils/localUserStore');
+
+const isMongoConnected = () => mongoose.connection.readyState === 1;
 
 // @desc    Register new user
 // @route   POST /api/auth/register
 // @access  Public
 const register = asyncHandler(async (req, res, next) => {
   const { name, email, password, phone, address } = req.body;
+
+  if (!isMongoConnected()) {
+    const user = await createLocalUser({ name, email, password, phone, address });
+
+    if (!user) {
+      return next(new AppError('Email already registered. Please log in.', 400));
+    }
+
+    sendTokenResponse(user, 201, res);
+    return;
+  }
 
   const existingUser = await User.findOne({ email });
   if (existingUser) {
@@ -26,6 +49,18 @@ const register = asyncHandler(async (req, res, next) => {
 // @access  Public
 const login = asyncHandler(async (req, res, next) => {
   const { email, password } = req.body;
+
+  if (!isMongoConnected()) {
+    const user = await verifyLocalUserCredentials({ email, password });
+
+    if (!user) {
+      return next(new AppError('Invalid email or password.', 401));
+    }
+
+    const updatedUser = touchLocalUserLogin(user._id) || user;
+    sendTokenResponse(updatedUser, 200, res);
+    return;
+  }
 
   const user = await User.findOne({ email }).select('+password');
   if (!user || !(await user.comparePassword(password))) {
@@ -58,7 +93,10 @@ const refreshToken = asyncHandler(async (req, res, next) => {
     return next(new AppError('Invalid or expired refresh token. Please log in again.', 401));
   }
 
-  const user = await User.findById(decoded.id);
+  const user = isMongoConnected()
+    ? await User.findById(decoded.id)
+    : findLocalUserById(decoded.id);
+
   if (!user || !user.isActive) {
     return next(new AppError('User not found or deactivated.', 401));
   }
@@ -79,6 +117,11 @@ const logout = asyncHandler(async (req, res) => {
 // @route   GET /api/auth/me
 // @access  Private
 const getMe = asyncHandler(async (req, res) => {
+  if (!isMongoConnected()) {
+    res.status(200).json({ success: true, user: toPublicLocalUser(req.user) });
+    return;
+  }
+
   const user = await User.findById(req.user._id);
   res.status(200).json({ success: true, user });
 });
@@ -88,6 +131,13 @@ const getMe = asyncHandler(async (req, res) => {
 // @access  Private
 const updateProfile = asyncHandler(async (req, res) => {
   const { name, phone, address } = req.body;
+
+  if (!isMongoConnected()) {
+    const user = updateLocalUser(req.user._id, { name, phone, address });
+    res.status(200).json({ success: true, user: toPublicLocalUser(user) });
+    return;
+  }
+
   const user = await User.findByIdAndUpdate(
     req.user._id,
     { name, phone, address },
@@ -103,6 +153,25 @@ const changePassword = asyncHandler(async (req, res, next) => {
   const { currentPassword, newPassword } = req.body;
   if (!currentPassword || !newPassword) {
     return next(new AppError('Please provide current and new password.', 400));
+  }
+
+  if (!isMongoConnected()) {
+    const result = await changeLocalUserPassword({
+      id: req.user._id,
+      currentPassword,
+      newPassword,
+    });
+
+    if (result.reason === 'invalid-password') {
+      return next(new AppError('Current password is incorrect.', 400));
+    }
+
+    if (!result.ok) {
+      return next(new AppError('User not found.', 404));
+    }
+
+    res.status(200).json({ success: true, message: 'Password changed successfully.' });
+    return;
   }
 
   const user = await User.findById(req.user._id).select('+password');

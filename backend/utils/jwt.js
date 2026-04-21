@@ -1,23 +1,26 @@
 const jwt = require('jsonwebtoken');
 
+const accessTokenSecret = process.env.JWT_SECRET || 'jan-resolve-dev-access-secret';
+const refreshTokenSecret = process.env.JWT_REFRESH_SECRET || 'jan-resolve-dev-refresh-secret';
+
 const generateAccessToken = (userId) => {
-  return jwt.sign({ id: userId }, process.env.JWT_SECRET, {
+  return jwt.sign({ id: userId }, accessTokenSecret, {
     expiresIn: process.env.JWT_EXPIRE || '7d',
   });
 };
 
 const generateRefreshToken = (userId) => {
-  return jwt.sign({ id: userId }, process.env.JWT_REFRESH_SECRET, {
+  return jwt.sign({ id: userId }, refreshTokenSecret, {
     expiresIn: process.env.JWT_REFRESH_EXPIRE || '30d',
   });
 };
 
 const verifyAccessToken = (token) => {
-  return jwt.verify(token, process.env.JWT_SECRET);
+  return jwt.verify(token, accessTokenSecret);
 };
 
 const verifyRefreshToken = (token) => {
-  return jwt.verify(token, process.env.JWT_REFRESH_SECRET);
+  return jwt.verify(token, refreshTokenSecret);
 };
 
 const sendTokenResponse = (user, statusCode, res) => {

@@ -181,7 +181,7 @@ const getComplaints = asyncHandler(async (req, res) => {
 const getComplaint = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
 
-  const query = id.startsWith('JR-')
+  const query = id.startsWith('GOV-')
     ? { complaintId: id }
     : { _id: id };
 
@@ -368,8 +368,8 @@ const deleteComplaint = asyncHandler(async (req, res, next) => {
     return next(new AppError('Not authorized to delete this complaint.', 403));
   }
 
-  // Citizens can only delete Pending complaints
-  if (req.user.role === 'citizen' && complaint.status !== 'Pending') {
+  // Citizens can only delete complaints before processing starts.
+  if (req.user.role === 'citizen' && !['Submitted', 'Pending'].includes(complaint.status)) {
     return next(new AppError('Cannot delete a complaint that is already being processed.', 400));
   }
 

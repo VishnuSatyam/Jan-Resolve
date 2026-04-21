@@ -1,16 +1,31 @@
 const { verifyAccessToken } = require('../utils/jwt');
+const mongoose = require('mongoose');
 const User = require('../models/User');
 const { AppError } = require('../utils/errorHandler');
+const { findLocalUserById } = require('../utils/localUserStore');
+
+const getBearerToken = (req) => {
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+    return req.headers.authorization.split(' ')[1];
+  }
+
+  return null;
+};
+
+const isMongoConnected = () => mongoose.connection.readyState === 1;
+
+const findUserForRequest = async (id) => {
+  if (isMongoConnected()) {
+    return User.findById(id);
+  }
+
+  return findLocalUserById(id);
+};
 
 // Protect routes - require valid JWT
 const protect = async (req, res, next) => {
   try {
-    let token;
-
-    // Check Authorization header
-    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
-      token = req.headers.authorization.split(' ')[1];
-    }
+    const token = getBearerToken(req);
 
     if (!token) {
       return next(new AppError('Access denied. Please log in.', 401));
@@ -20,7 +35,7 @@ const protect = async (req, res, next) => {
     const decoded = verifyAccessToken(token);
 
     // Check if user still exists
-    const user = await User.findById(decoded.id);
+    const user = await findUserForRequest(decoded.id);
     if (!user) {
       return next(new AppError('User no longer exists.', 401));
     }
@@ -42,6 +57,28 @@ const protect = async (req, res, next) => {
   }
 };
 
+// Attach user when a valid token is present, but keep the route public.
+const optionalAuth = async (req, res, next) => {
+  try {
+    const token = getBearerToken(req);
+
+    if (!token) {
+      return next();
+    }
+
+    const decoded = verifyAccessToken(token);
+    const user = await findUserForRequest(decoded.id);
+
+    if (user?.isActive) {
+      req.user = user;
+    }
+
+    next();
+  } catch {
+    next();
+  }
+};
+
 // Restrict to specific roles
 const authorize = (...roles) => {
   return (req, res, next) => {
@@ -54,4 +91,4 @@ const authorize = (...roles) => {
   };
 };
 
-module.exports = { protect, authorize };
+module.exports = { protect, optionalAuth, authorize };

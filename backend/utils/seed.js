@@ -1,6 +1,5 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
 const connectDB = require('../config/db');
 const User = require('../models/User');
 const Complaint = require('../models/Complaint');
@@ -15,22 +14,20 @@ const seedData = async () => {
   console.log('🗑️  Cleared existing data');
 
   // Create admin user
-  const adminPassword = await bcrypt.hash('Admin@1234', 12);
   const admin = await User.create({
     name: 'Admin User',
     email: 'admin@janresolve.gov.in',
-    password: adminPassword,
+    password: 'Admin@1234',
     role: 'admin',
     phone: '9000000001',
     address: { city: 'New Delhi', state: 'Delhi', pincode: '110001' },
   });
 
   // Create an official
-  const officialPassword = await bcrypt.hash('Official@1234', 12);
   const official = await User.create({
     name: 'Rajesh Kumar',
     email: 'official@janresolve.gov.in',
-    password: officialPassword,
+    password: 'Official@1234',
     role: 'official',
     department: 'Water Supply',
     phone: '9000000002',
@@ -38,11 +35,10 @@ const seedData = async () => {
   });
 
   // Create sample citizens
-  const citizenPassword = await bcrypt.hash('Citizen@1234', 12);
   const citizen1 = await User.create({
     name: 'Priya Sharma',
     email: 'priya@example.com',
-    password: citizenPassword,
+    password: 'Citizen@1234',
     role: 'citizen',
     phone: '9876543210',
     address: { street: '12 MG Road', city: 'Mumbai', state: 'Maharashtra', pincode: '400001' },
@@ -51,7 +47,7 @@ const seedData = async () => {
   const citizen2 = await User.create({
     name: 'Amit Verma',
     email: 'amit@example.com',
-    password: citizenPassword,
+    password: 'Citizen@1234',
     role: 'citizen',
     phone: '9123456789',
     address: { city: 'Lucknow', state: 'Uttar Pradesh', pincode: '226001' },

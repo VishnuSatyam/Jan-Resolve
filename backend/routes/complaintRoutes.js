@@ -12,7 +12,7 @@ const {
   deleteComplaint,
   getStats,
 } = require('../controllers/complaintController');
-const { protect, authorize } = require('../middleware/auth');
+const { protect, optionalAuth, authorize } = require('../middleware/auth');
 const {
   complaintValidator,
   submitComplaintValidator,
@@ -22,8 +22,8 @@ const {
 } = require('../middleware/validators');
 const upload = require('../middleware/upload');
 
-router.get('/history', complaintHistoryValidator, getComplaintHistory);
-router.post('/', upload.single('image'), submitComplaintValidator, createComplaint);
+router.get('/history', optionalAuth, complaintHistoryValidator, getComplaintHistory);
+router.post('/', optionalAuth, upload.single('image'), submitComplaintValidator, createComplaint);
 
 // All routes below require authentication
 router.use(protect);

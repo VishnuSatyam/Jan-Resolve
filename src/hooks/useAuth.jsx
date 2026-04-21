@@ -1,11 +1,22 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { apiBaseUrl } from "../utils/complaints.js";
 
 const STORAGE_KEYS = {
+  accessToken: "jan-resolve-access-token",
+  user: "jan-resolve-user"
+};
+
+const LEGACY_STORAGE_KEYS = {
   user: "sca-demo-user",
   session: "sca-demo-session"
 };
 
 const AuthContext = createContext(null);
+
+function clearLegacyDemoSession() {
+  localStorage.removeItem(LEGACY_STORAGE_KEYS.user);
+  localStorage.removeItem(LEGACY_STORAGE_KEYS.session);
+}
 
 function readStoredUser() {
   const rawUser = localStorage.getItem(STORAGE_KEYS.user);
@@ -22,70 +33,187 @@ function readStoredUser() {
   }
 }
 
+async function requestJson(path, { accessToken, ...options } = {}) {
+  const response = await fetch(`${apiBaseUrl}${path}`, {
+    credentials: "include",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      ...(options.headers || {})
+    }
+  });
+
+  const rawResponse = await response.text();
+  let result = null;
+
+  if (rawResponse) {
+    try {
+      result = JSON.parse(rawResponse);
+    } catch {
+      throw new Error("Server returned an invalid response.");
+    }
+  }
+
+  if (!response.ok || result?.success === false) {
+    throw new Error(result?.message || "Request failed. Please try again.");
+  }
+
+  return result;
+}
+
+function toAuthError(error) {
+  if (error instanceof TypeError) {
+    return "Cannot reach the authentication server. Start the backend and try again.";
+  }
+
+  return error.message || "Authentication failed. Please try again.";
+}
+
 export function AuthProvider({ children }) {
-  const [storedUser, setStoredUser] = useState(null);
-  const [sessionEmail, setSessionEmail] = useState("");
+  const [currentUser, setCurrentUser] = useState(null);
+  const [accessToken, setAccessToken] = useState("");
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    setStoredUser(readStoredUser());
-    setSessionEmail(localStorage.getItem(STORAGE_KEYS.session) ?? "");
-    setIsReady(true);
+    let isMounted = true;
+
+    const restoreSession = async () => {
+      clearLegacyDemoSession();
+
+      const storedAccessToken = localStorage.getItem(STORAGE_KEYS.accessToken) || "";
+      const storedUser = readStoredUser();
+
+      if (!storedAccessToken || !storedUser) {
+        if (isMounted) {
+          setIsReady(true);
+        }
+
+        return;
+      }
+
+      if (isMounted) {
+        setAccessToken(storedAccessToken);
+        setCurrentUser(storedUser);
+      }
+
+      try {
+        const result = await requestJson("/api/auth/me", {
+          accessToken: storedAccessToken,
+          method: "GET"
+        });
+
+        if (isMounted) {
+          persistSession({
+            token: storedAccessToken,
+            user: result.user
+          });
+        }
+      } catch {
+        if (isMounted) {
+          clearSession();
+        }
+      } finally {
+        if (isMounted) {
+          setIsReady(true);
+        }
+      }
+    };
+
+    restoreSession();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  const register = ({ name, email, password }) => {
-    const nextUser = { name, email, password };
-    localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(nextUser));
-    localStorage.setItem(STORAGE_KEYS.session, email);
-    setStoredUser(nextUser);
-    setSessionEmail(email);
-    return nextUser;
+  const persistSession = ({ token, user }) => {
+    localStorage.setItem(STORAGE_KEYS.accessToken, token);
+    localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(user));
+    setAccessToken(token);
+    setCurrentUser(user);
   };
 
-  const signIn = ({ email, password }) => {
-    const currentUser = readStoredUser();
-
-    if (!currentUser) {
-      return {
-        ok: false,
-        error: "No registered account found yet. Please create one first."
-      };
-    }
-
-    if (currentUser.email !== email || currentUser.password !== password) {
-      return {
-        ok: false,
-        error: "Email or password does not match the saved demo account."
-      };
-    }
-
-    localStorage.setItem(STORAGE_KEYS.session, email);
-    setStoredUser(currentUser);
-    setSessionEmail(email);
-
-    return {
-      ok: true,
-      user: currentUser
-    };
+  const clearSession = () => {
+    localStorage.removeItem(STORAGE_KEYS.accessToken);
+    localStorage.removeItem(STORAGE_KEYS.user);
+    clearLegacyDemoSession();
+    setAccessToken("");
+    setCurrentUser(null);
   };
 
-  const signOut = () => {
-    localStorage.removeItem(STORAGE_KEYS.session);
-    setSessionEmail("");
+  const register = async ({ name, email, password }) => {
+    try {
+      const result = await requestJson("/api/auth/register", {
+        method: "POST",
+        body: JSON.stringify({ name, email, password })
+      });
+
+      persistSession({ token: result.accessToken, user: result.user });
+
+      return {
+        ok: true,
+        user: result.user
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        error: toAuthError(error)
+      };
+    }
+  };
+
+  const signIn = async ({ email, password }) => {
+    try {
+      const result = await requestJson("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password })
+      });
+
+      persistSession({ token: result.accessToken, user: result.user });
+
+      return {
+        ok: true,
+        user: result.user
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        error: toAuthError(error)
+      };
+    }
+  };
+
+  const signOut = async () => {
+    const token = accessToken;
+    clearSession();
+
+    if (!token) {
+      return;
+    }
+
+    try {
+      await requestJson("/api/auth/logout", {
+        accessToken: token,
+        method: "POST"
+      });
+    } catch {
+      // Local session is already cleared.
+    }
   };
 
   const value = useMemo(
     () => ({
       isReady,
-      storedUser,
-      currentUser:
-        storedUser && sessionEmail && storedUser.email === sessionEmail ? storedUser : null,
-      isAuthenticated: Boolean(sessionEmail),
+      accessToken,
+      storedUser: currentUser,
+      currentUser,
+      isAuthenticated: Boolean(accessToken && currentUser),
       register,
       signIn,
       signOut
     }),
-    [isReady, sessionEmail, storedUser]
+    [accessToken, currentUser, isReady]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -24,7 +24,7 @@ const initialForm = {
 const isValidPhoneNumber = (phone) => /^[6-9]\d{9}$/.test(phone.trim());
 
 export default function SubmitComplaintPage() {
-  const { currentUser } = useAuth();
+  const { accessToken, currentUser } = useAuth();
   const { showToast } = useToast();
   const [formData, setFormData] = useState({
     ...initialForm,
@@ -109,6 +109,7 @@ export default function SubmitComplaintPage() {
 
       const response = await fetch(`${apiBaseUrl}/api/complaints`, {
         method: "POST",
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
         body: payload
       });
 
