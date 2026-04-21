@@ -1,247 +1,174 @@
-# Jan Resolve — Backend API
+# Jan Resolve Backend API
 
-> RESTful backend for the Jan Resolve citizen grievance platform.
-> Built with **Node.js + Express + MongoDB + JWT**.
+This is the Express API for Jan Resolve, a citizen grievance platform. It supports authentication, complaint submission, complaint management, image uploads, users, notifications, and role-based protected routes.
 
----
+The backend can run in two modes:
 
-## 📁 Project Structure
+- MongoDB mode, using Mongoose models
+- Local demo mode, using JSON files when MongoDB is not configured
 
-```
-jan-resolve-backend/
-├── config/
-│   └── db.js                   # MongoDB connection
-├── controllers/
-│   ├── authController.js       # Register, login, refresh, profile
-│   ├── complaintController.js  # Full complaint lifecycle
-│   ├── userController.js       # Admin user management
-│   └── notificationController.js
-├── middleware/
-│   ├── auth.js                 # JWT protect + role authorize
-│   ├── errorMiddleware.js      # Global error handler
-│   └── validators.js           # express-validator rules
-├── models/
-│   ├── User.js                 # Citizen / Official / Admin
-│   ├── Complaint.js            # Complaint with history & comments
-│   └── Notification.js
-├── routes/
-│   ├── authRoutes.js
-│   ├── complaintRoutes.js
-│   ├── userRoutes.js
-│   └── notificationRoutes.js
-├── utils/
-│   ├── jwt.js                  # Token generation helpers
-│   ├── errorHandler.js         # AppError class + asyncHandler
-│   ├── notifications.js        # Notification helpers
-│   └── seed.js                 # Sample data seeder
-├── .env.example
-├── .gitignore
-├── package.json
-└── server.js                   # App entry point
-```
+## Quick Start
 
----
+Install dependencies:
 
-## ⚡ Quick Start
-
-### 1. Install dependencies
 ```bash
-cd jan-resolve-backend
 npm install
 ```
 
-### 2. Configure environment
+Start the server:
+
 ```bash
-cp .env.example .env
-# Edit .env and set your MONGO_URI and JWT secrets
+npm run dev
 ```
 
-### 3. Seed sample data (optional)
+Server URL:
+
+```text
+http://localhost:5000
+```
+
+Health check:
+
+```text
+GET /api/health
+```
+
+## Environment
+
+Create `.env` from `.env.example` for MongoDB mode:
+
+```bash
+cp .env.example .env
+```
+
+Example:
+
+```env
+PORT=5000
+NODE_ENV=development
+MONGO_URI=mongodb://localhost:27017/jan_resolve
+JWT_SECRET=change_this_access_secret
+JWT_EXPIRE=7d
+JWT_REFRESH_SECRET=change_this_refresh_secret
+JWT_REFRESH_EXPIRE=30d
+CLIENT_URL=http://localhost:5173
+```
+
+If `.env` is missing, the API still starts in local demo mode.
+
+## Local Demo Mode
+
+When MongoDB is not connected:
+
+- Auth users are stored in `data/users.json`
+- Complaints are stored in `data/complaints.json`
+- Complaint uploads are stored in `uploads/complaints/`
+
+This mode is useful for project demos because register, login, complaint submit, and complaint history work without installing MongoDB.
+
+## Project Structure
+
+```text
+backend/
+├── config/
+│   └── db.js
+├── controllers/
+│   ├── authController.js
+│   ├── complaintController.js
+│   ├── notificationController.js
+│   └── userController.js
+├── data/
+│   ├── complaints.json
+│   └── users.json
+├── middleware/
+│   ├── auth.js
+│   ├── errorMiddleware.js
+│   ├── upload.js
+│   └── validators.js
+├── models/
+│   ├── Complaint.js
+│   ├── Notification.js
+│   └── User.js
+├── routes/
+│   ├── authRoutes.js
+│   ├── complaintRoutes.js
+│   ├── notificationRoutes.js
+│   └── userRoutes.js
+├── utils/
+│   ├── errorHandler.js
+│   ├── jwt.js
+│   ├── localComplaintStore.js
+│   ├── localUserStore.js
+│   ├── notifications.js
+│   └── seed.js
+└── server.js
+```
+
+## Authentication
+
+Protected routes require:
+
+```text
+Authorization: Bearer <accessToken>
+```
+
+Auth endpoints:
+
+| Method | Endpoint | Access |
+| --- | --- | --- |
+| POST | `/api/auth/register` | Public |
+| POST | `/api/auth/login` | Public |
+| POST | `/api/auth/refresh` | Public |
+| POST | `/api/auth/logout` | Private |
+| GET | `/api/auth/me` | Private |
+| PUT | `/api/auth/me` | Private |
+| PUT | `/api/auth/change-password` | Private |
+
+## Complaint Endpoints
+
+| Method | Endpoint | Access |
+| --- | --- | --- |
+| POST | `/api/complaints` | Public with optional auth |
+| GET | `/api/complaints/history` | Public with optional auth |
+| GET | `/api/complaints` | Private |
+| GET | `/api/complaints/stats` | Admin, Official |
+| GET | `/api/complaints/:id` | Private |
+| DELETE | `/api/complaints/:id` | Owner, Admin |
+| PUT | `/api/complaints/:id/status` | Admin, Official |
+| PUT | `/api/complaints/:id/assign` | Admin |
+| POST | `/api/complaints/:id/comments` | Private |
+| POST | `/api/complaints/:id/upvote` | Citizen |
+
+Complaint categories accepted by the current citizen form:
+
+- Water Supply
+- Electricity
+- Road Safety
+- Waste Management
+- Healthcare
+
+## Seed Data
+
+MongoDB mode can be seeded:
+
 ```bash
 npm run seed
 ```
 
-### 4. Start the server
-```bash
-# Development (with auto-reload)
-npm run dev
+Seed credentials:
 
-# Production
-npm start
-```
+| Role | Email | Password |
+| --- | --- | --- |
+| Admin | admin@janresolve.gov.in | Admin@1234 |
+| Official | official@janresolve.gov.in | Official@1234 |
+| Citizen | priya@example.com | Citizen@1234 |
+| Citizen | amit@example.com | Citizen@1234 |
 
-Server runs at: `http://localhost:5000`
+## Security Notes
 
----
-
-## 🔐 Authentication
-
-All protected routes require a **Bearer token** in the `Authorization` header:
-
-```
-Authorization: Bearer <accessToken>
-```
-
-Refresh tokens are stored in an `httpOnly` cookie and used via `POST /api/auth/refresh`.
-
-### User Roles
-
-| Role       | Permissions                                              |
-|------------|----------------------------------------------------------|
-| `citizen`  | Submit, view own complaints, comment, upvote             |
-| `official` | View & update complaints in their department             |
-| `admin`    | Full access — manage all complaints, users, assignments  |
-
----
-
-## 📡 API Reference
-
-### Auth — `/api/auth`
-
-| Method | Endpoint              | Access  | Description               |
-|--------|-----------------------|---------|---------------------------|
-| POST   | `/register`           | Public  | Register a new user        |
-| POST   | `/login`              | Public  | Login and get tokens       |
-| POST   | `/refresh`            | Public  | Refresh access token       |
-| POST   | `/logout`             | Private | Logout (clear cookie)      |
-| GET    | `/me`                 | Private | Get current user           |
-| PUT    | `/me`                 | Private | Update profile             |
-| PUT    | `/change-password`    | Private | Change password            |
-
-**Register body:**
-```json
-{
-  "name": "Priya Sharma",
-  "email": "priya@example.com",
-  "password": "MyPass@123",
-  "phone": "9876543210",
-  "address": { "city": "Mumbai", "state": "Maharashtra", "pincode": "400001" }
-}
-```
-
-**Login body:**
-```json
-{ "email": "priya@example.com", "password": "MyPass@123" }
-```
-
-**Login response:**
-```json
-{
-  "success": true,
-  "accessToken": "<jwt>",
-  "user": { "_id": "...", "name": "...", "role": "citizen", ... }
-}
-```
-
----
-
-### Complaints — `/api/complaints`
-
-| Method | Endpoint                   | Access           | Description                     |
-|--------|----------------------------|------------------|---------------------------------|
-| GET    | `/`                        | Private          | List complaints (role-filtered) |
-| POST   | `/`                        | Citizen          | Submit a new complaint          |
-| GET    | `/stats`                   | Admin, Official  | Dashboard statistics            |
-| GET    | `/:id`                     | Private          | Get single complaint            |
-| DELETE | `/:id`                     | Owner, Admin     | Delete complaint                |
-| PUT    | `/:id/status`              | Admin, Official  | Update status                   |
-| PUT    | `/:id/assign`              | Admin            | Assign to official/department   |
-| POST   | `/:id/comments`            | Private          | Add a comment                   |
-| POST   | `/:id/upvote`              | Citizen          | Toggle upvote                   |
-
-**Submit complaint body:**
-```json
-{
-  "title": "Broken water pipe on MG Road",
-  "description": "There is a broken water pipe causing flooding near MG Road. Water has been wasting for 2 days.",
-  "category": "Water Supply",
-  "priority": "High",
-  "location": {
-    "address": "12 MG Road, Andheri West",
-    "city": "Mumbai",
-    "state": "Maharashtra",
-    "pincode": "400053"
-  },
-  "isPublic": true
-}
-```
-
-**Category options:** `Water Supply`, `Electricity`, `Roads & Infrastructure`, `Sanitation`, `Public Health`, `Education`, `Police`, `Revenue`, `Other`
-
-**Priority options:** `Low`, `Medium`, `High`, `Urgent`
-
-**Status options:** `Pending`, `Under Review`, `In Progress`, `Resolved`, `Rejected`, `Closed`
-
-**Query params for GET /:**
-- `status`, `category`, `priority` — filter
-- `search` — full-text search (title, description, complaintId)
-- `page`, `limit` — pagination (default: page=1, limit=10)
-- `sortBy`, `order` — sorting (default: createdAt, desc)
-
----
-
-### Users — `/api/users`
-
-| Method | Endpoint            | Access   | Description                    |
-|--------|---------------------|----------|--------------------------------|
-| GET    | `/me/summary`       | Private  | Citizen's complaint summary    |
-| GET    | `/officials`        | Admin    | List officials for assignment  |
-| GET    | `/`                 | Admin    | All users (paginated)          |
-| GET    | `/:id`              | Admin    | Single user                    |
-| PUT    | `/:id`              | Admin    | Update role/department/status  |
-| DELETE | `/:id`              | Admin    | Delete user                    |
-
----
-
-### Notifications — `/api/notifications`
-
-| Method | Endpoint           | Access  | Description                |
-|--------|--------------------|---------|----------------------------|
-| GET    | `/`                | Private | Get user notifications     |
-| PUT    | `/read-all`        | Private | Mark all as read           |
-| PUT    | `/:id/read`        | Private | Mark one as read           |
-| DELETE | `/:id`             | Private | Delete a notification      |
-
----
-
-## 🌱 Seed Credentials
-
-After running `npm run seed`:
-
-| Role     | Email                           | Password       |
-|----------|---------------------------------|----------------|
-| Admin    | admin@janresolve.gov.in         | Admin@1234     |
-| Official | official@janresolve.gov.in      | Official@1234  |
-| Citizen  | priya@example.com               | Citizen@1234   |
-| Citizen  | amit@example.com                | Citizen@1234   |
-
----
-
-## 🔗 Frontend Integration
-
-Update your frontend `vite.config.js` to proxy API calls during development:
-
-```js
-// vite.config.js
-export default {
-  server: {
-    proxy: {
-      '/api': 'http://localhost:5000',
-    },
-  },
-};
-```
-
-Or set `VITE_API_URL=http://localhost:5000` in your frontend `.env` and use it in fetch calls.
-
----
-
-## 🛡️ Security Features
-
-- Passwords hashed with **bcryptjs** (salt rounds: 12)
-- Access tokens expire in **7 days**, refresh tokens in **30 days**
-- Rate limiting: 100 req/15min globally, 20 req/15min on auth routes
-- `httpOnly` cookies for refresh tokens
-- **Helmet** for secure HTTP headers
-- Role-based access control on every sensitive route
-- Input validation via **express-validator** on all write operations
+- Passwords are hashed with bcryptjs.
+- JWT access tokens are returned to the frontend.
+- Refresh tokens are stored in an httpOnly cookie.
+- Helmet, CORS, and rate limiting are enabled.
+- Development fallback JWT secrets are provided only so local demo mode works without `.env`.
+- For deployment, set strong `JWT_SECRET` and `JWT_REFRESH_SECRET` values in `.env`.
